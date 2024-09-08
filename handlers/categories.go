@@ -68,3 +68,12 @@ func DeleteCategory(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "category deleted"})
 }
+
+func GetAllCategories(c *gin.Context) {
+	categories, err := db.GetAllCategoriesFromDb()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"categories": categories})
+}

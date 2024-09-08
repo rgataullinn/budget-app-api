@@ -57,3 +57,52 @@ func DeleteCategoryInDb(id int) error {
 	_, err := Pool.Exec(context.Background(), sqlScript, id)
 	return err
 }
+
+func GetCategoryName(id int) (string, error) {
+	sqlScript := `
+		SELECT name FROM categories
+		WHERE id=$1
+	`
+	var name string
+	err := Pool.QueryRow(context.Background(), sqlScript, id).Scan(&name)
+	if err != nil {
+		return "", err
+	}
+	return name, nil
+}
+
+func GetAllCategoriesFromDb() ([]struct {
+	Name string `json:"name"`
+	Id   int    `json:"id"`
+}, error) {
+	sqlScript := `
+		SELECT id, name
+		FROM categories
+	`
+	var result []struct {
+		Name string `json:"name"`
+		Id   int    `json:"id"`
+	}
+	rows, err := Pool.Query(context.Background(), sqlScript)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var name string
+		var id int
+		err := rows.Scan(&id, &name)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, struct {
+			Name string `json:"name"`
+			Id   int    `json:"id"`
+		}{
+			Name: name,
+			Id:   id,
+		})
+	}
+	return result, nil
+}

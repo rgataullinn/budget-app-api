@@ -55,6 +55,46 @@ func GetExpense(c *gin.Context) {
 
 }
 
+func GetAllExpense(c *gin.Context) {
+	isCategory, err1 := strconv.ParseBool(c.Query("isCategory"))
+	isDate, err2 := strconv.ParseBool(c.Query("isDate"))
+
+	if err1 != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err1})
+		return
+	}
+
+	if err2 != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err2})
+		return
+	}
+
+	if isCategory && isDate {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "choose only one type"})
+		return
+	}
+
+	if isCategory {
+		expenses, err := db.GetAllExpenseByCategory()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"expenses": expenses})
+		return
+	}
+
+	if isDate {
+		expenses, err := db.GetAllExpensesByDate()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"expenses": expenses})
+		return
+	}
+}
+
 func DeleteExpense(c *gin.Context) {
 	idParam := c.Query("id")
 
