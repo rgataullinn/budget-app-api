@@ -1,19 +1,21 @@
 package main
 
 import (
+	"log"
 	"os"
 	"personal-finance-api/db"
 	"personal-finance-api/handlers"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	// err := godotenv.Load()
-	// if err != nil {
-	// 	log.Fatal("Error loading .env file")
-	// }
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 	dbUser := os.Getenv("DB_USER")
 	dbPassword := os.Getenv("DB_PASSWORD")
 	dbHost := os.Getenv("DB_HOST")
@@ -44,6 +46,8 @@ func main() {
 	router.DELETE("/category", handlers.DeleteCategory)
 	router.GET("/categories", handlers.GetAllCategories)
 
+	router.GET("/totalSpent", handlers.GetTotalSpent)
+	// router.GET("/totatlEarn", handlers.GetTotalEarns)
 	connString := "postgres://" + dbUser + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName
 	db.ConnectDB(connString)
 	defer db.CloseDB()
