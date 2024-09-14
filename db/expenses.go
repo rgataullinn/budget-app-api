@@ -88,7 +88,7 @@ func GetAllExpensesByDate() ([]struct {
 	sqlScript := `
         SELECT id, user_id, category_id, amount,name, description, expense_date, expense_time
         FROM expenses
-        ORDER BY expense_date
+        ORDER BY expense_date DESC
     `
 
 	expensesByDate := make(map[string][]models.Expense)
@@ -140,7 +140,7 @@ func GetAllExpenseByCategory() ([]struct {
 	sqlScript := `
 		SELECT id, user_id, category_id, amount, name, description, expense_date, expense_time
         FROM expenses
-        ORDER BY category_id
+        ORDER BY expense_date DESC
 	`
 	expensesByCategory := make(map[string][]models.Expense)
 	totalByCategory := make(map[string]float32) // Use float32 here
