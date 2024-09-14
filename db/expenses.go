@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"personal-finance-api/models"
+	"sort"
 )
 
 func AddExpenseInDb(newExpense models.Expense) error {
@@ -134,13 +135,15 @@ func GetAllExpensesByDate() ([]struct {
 func GetAllExpenseByCategory() ([]struct {
 	Category string           `json:"category"`
 	Expenses []models.Expense `json:"expenses"`
+	Total    float32          `json:"total"` // Use float32 here
 }, error) {
 	sqlScript := `
-		SELECT id, user_id, category_id, amount,name, description, expense_date, expense_time
+		SELECT id, user_id, category_id, amount, name, description, expense_date, expense_time
         FROM expenses
         ORDER BY category_id
 	`
 	expensesByCategory := make(map[string][]models.Expense)
+	totalByCategory := make(map[string]float32) // Use float32 here
 
 	rows, err := Pool.Query(context.Background(), sqlScript)
 	if err != nil {
@@ -164,28 +167,35 @@ func GetAllExpenseByCategory() ([]struct {
 
 		expensesByCategory[categoryName] =
 			append(expensesByCategory[categoryName], expense)
+		totalByCategory[categoryName] += expense.Amount // No need for conversion
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
+	// Create a slice of result structs with totals
 	var result []struct {
 		Category string           `json:"category"`
 		Expenses []models.Expense `json:"expenses"`
+		Total    float32          `json:"total"` // Use float32 here
 	}
 	for category, expenses := range expensesByCategory {
 		result = append(result, struct {
 			Category string           `json:"category"`
 			Expenses []models.Expense `json:"expenses"`
+			Total    float32          `json:"total"` // Use float32 here
 		}{
 			Category: category,
 			Expenses: expenses,
+			Total:    totalByCategory[category],
 		})
 	}
+
+	// Sort result by total in descending order
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Total > result[j].Total
+	})
 
 	return result, nil
 }
