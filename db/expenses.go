@@ -86,7 +86,7 @@ func GetAllExpensesByDate() ([]struct {
 	Expenses []models.Expense `json:"expenses"`
 }, error) {
 	sqlScript := `
-        SELECT id, user_id, category_id, amount,name, description, expense_date, expense_time
+        SELECT id, user_id, category_id, amount, name, description, expense_date, expense_time
         FROM expenses
         ORDER BY expense_date DESC
     `
@@ -108,13 +108,13 @@ func GetAllExpensesByDate() ([]struct {
 			return nil, err
 		}
 
-		// Group expenses by date
 		expensesByDate[expense.Expense_date] = append(expensesByDate[expense.Expense_date], expense)
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
+
 	var result []struct {
 		Day      string           `json:"day"`
 		Expenses []models.Expense `json:"expenses"`
@@ -128,6 +128,10 @@ func GetAllExpensesByDate() ([]struct {
 			Expenses: expenses,
 		})
 	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Day > result[j].Day
+	})
 
 	return result, nil
 }
