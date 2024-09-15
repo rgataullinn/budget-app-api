@@ -86,10 +86,11 @@ func GetAllExpensesByDate() ([]struct {
 	Expenses []models.Expense `json:"expenses"`
 }, error) {
 	sqlScript := `
-        SELECT id, user_id, category_id, amount, name, description, expense_date, expense_time
-        FROM expenses
-        ORDER BY expense_date DESC
-    `
+    SELECT e.id, e.user_id, c.name AS category, e.amount, e.name, e.description, e.expense_date, e.expense_time
+    FROM expenses e
+    JOIN categories c ON e.category_id = c.id
+    ORDER BY e.expense_date DESC
+`
 
 	expensesByDate := make(map[string][]models.Expense)
 
@@ -102,7 +103,7 @@ func GetAllExpensesByDate() ([]struct {
 	for rows.Next() {
 		var expense models.Expense
 
-		err := rows.Scan(&expense.Id, &expense.User_id, &expense.Category_id,
+		err := rows.Scan(&expense.Id, &expense.User_id, &expense.Category,
 			&expense.Amount, &expense.Name, &expense.Description, &expense.Expense_date, &expense.Expense_time)
 		if err != nil {
 			return nil, err
