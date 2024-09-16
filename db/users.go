@@ -8,7 +8,7 @@ import (
 func AddUserInDb(newUser models.User) error {
 	sqlScript := `
         INSERT INTO users (username, password, email) 
-        VALUES ($1, $2, $3);
+        VALUES ($1, crypt($2, gen_salt('bf')), $3);
     `
 	_, err := Pool.Exec(context.Background(), sqlScript,
 		newUser.Username, newUser.Password, newUser.Email)
@@ -33,7 +33,7 @@ func IsExist(username string) (bool, error) {
 func ValidateUserCredentials(username string, password string) (bool, error) {
 	sqlScript := `
         SELECT EXISTS (
-            SELECT 1 FROM users WHERE username = $1 AND password = $2
+            SELECT 1 FROM users WHERE username = $1 AND password = crypt($2, password)
         );
     `
 	var exists bool
