@@ -36,7 +36,8 @@ func main() {
 
 	router.POST("/expense", handlers.PostExpense)
 	router.GET("/expense", handlers.GetExpense)
-	router.GET("/expenses", handlers.GetAllExpense)
+	router.GET("/expensesByDate", handlers.GetAllExpensesByDate)
+	router.GET("/expensesByCategory", handlers.GetAllExpensesByCategory)
 	router.DELETE("/expense", handlers.DeleteExpense)
 
 	router.POST("/category", handlers.PostCategory)

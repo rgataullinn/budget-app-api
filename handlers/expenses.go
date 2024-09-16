@@ -55,44 +55,32 @@ func GetExpense(c *gin.Context) {
 
 }
 
-func GetAllExpense(c *gin.Context) {
-	isCategory, err1 := strconv.ParseBool(c.Query("isCategory"))
-	isDate, err2 := strconv.ParseBool(c.Query("isDate"))
-
-	if err1 != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err1})
+func GetAllExpensesByDate(c *gin.Context) {
+	month, err := strconv.Atoi(c.Query("month"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
-
-	if err2 != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err2})
+	expenses, err := db.GetAllExpensesByDate(month)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
+	c.JSON(http.StatusOK, gin.H{"expenses": expenses})
+}
 
-	if isCategory && isDate {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "choose only one type"})
+func GetAllExpensesByCategory(c *gin.Context) {
+	month, err := strconv.Atoi(c.Query("month"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
-
-	if isCategory {
-		expenses, err := db.GetAllExpenseByCategory()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"expenses": expenses})
+	expenses, err := db.GetAllExpenseByCategory(month)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
-
-	if isDate {
-		expenses, err := db.GetAllExpensesByDate()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"expenses": expenses})
-		return
-	}
+	c.JSON(http.StatusOK, gin.H{"expenses": expenses})
 }
 
 func DeleteExpense(c *gin.Context) {

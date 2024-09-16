@@ -81,7 +81,7 @@ func GetExpenseFromDb(id int) (*models.Expense, error) {
 	return &expense, nil
 }
 
-func GetAllExpensesByDate() ([]struct {
+func GetAllExpensesByDate(month int) ([]struct {
 	Day      string           `json:"day"`
 	Expenses []models.Expense `json:"expenses"`
 }, error) {
@@ -89,12 +89,13 @@ func GetAllExpensesByDate() ([]struct {
     SELECT e.id, e.user_id, e.category_id, c.name AS category, e.amount, e.name, e.description, e.expense_date, e.expense_time
     FROM expenses e
     JOIN categories c ON e.category_id = c.id
+	WHERE EXTRACT(MONTH FROM expense_date::date) = $1
     ORDER BY e.expense_date DESC
 `
 
 	expensesByDate := make(map[string][]models.Expense)
 
-	rows, err := Pool.Query(context.Background(), sqlScript)
+	rows, err := Pool.Query(context.Background(), sqlScript, month)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +138,7 @@ func GetAllExpensesByDate() ([]struct {
 	return result, nil
 }
 
-func GetAllExpenseByCategory() ([]struct {
+func GetAllExpenseByCategory(month int) ([]struct {
 	Category string           `json:"category"`
 	Expenses []models.Expense `json:"expenses"`
 	Total    float32          `json:"total"` // Use float32 here
@@ -145,12 +146,13 @@ func GetAllExpenseByCategory() ([]struct {
 	sqlScript := `
 		SELECT id, user_id, category_id, amount, name, description, expense_date, expense_time
         FROM expenses
+		WHERE EXTRACT(MONTH FROM expense_date::date) = $1
         ORDER BY expense_date DESC
 	`
 	expensesByCategory := make(map[string][]models.Expense)
-	totalByCategory := make(map[string]float32) // Use float32 here
+	totalByCategory := make(map[string]float32)
 
-	rows, err := Pool.Query(context.Background(), sqlScript)
+	rows, err := Pool.Query(context.Background(), sqlScript, month)
 	if err != nil {
 		return nil, err
 	}
