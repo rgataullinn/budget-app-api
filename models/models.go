@@ -21,6 +21,7 @@ type Expense struct {
 	Description  string    `json:"description"`
 	Expense_date string    `json:"expense_date"`
 	Expense_time string    `json:"expense_time"`
+	Color        string    `json:"color"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }

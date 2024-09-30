@@ -86,7 +86,7 @@ func GetAllExpensesByDate(month int) ([]struct {
 	Expenses []models.Expense `json:"expenses"`
 }, error) {
 	sqlScript := `
-    SELECT e.id, e.user_id, e.category_id, c.name AS category, e.amount, e.name, e.description, e.expense_date, e.expense_time
+    SELECT e.id, e.user_id, e.category_id, c.name AS category, c.color, e.amount, e.name, e.description, e.expense_date, e.expense_time
     FROM expenses e
     JOIN categories c ON e.category_id = c.id
 	WHERE EXTRACT(MONTH FROM expense_date::date) = $1
@@ -104,7 +104,7 @@ func GetAllExpensesByDate(month int) ([]struct {
 	for rows.Next() {
 		var expense models.Expense
 
-		err := rows.Scan(&expense.Id, &expense.User_id, &expense.Category_id, &expense.Category,
+		err := rows.Scan(&expense.Id, &expense.User_id, &expense.Category_id, &expense.Category, &expense.Color,
 			&expense.Amount, &expense.Name, &expense.Description, &expense.Expense_date, &expense.Expense_time)
 		if err != nil {
 			return nil, err
@@ -146,11 +146,13 @@ func GetAllExpensesByDate(month int) ([]struct {
 func GetAllExpenseByCategory(month int) ([]struct {
 	Category string           `json:"category"`
 	Expenses []models.Expense `json:"expenses"`
-	Total    float32          `json:"total"` // Use float32 here
+	Total    float32          `json:"total"`
 }, error) {
 	sqlScript := `
-		SELECT id, user_id, category_id, amount, name, description, expense_date, expense_time
-        FROM expenses
+		SELECT e.id, e.user_id, e.category_id, c.color, e.amount, e.name, e.description, e.expense_date, e.expense_time
+        FROM expenses e
+		LEFT JOIN categories c
+		ON e.category_id = c.id
 		WHERE EXTRACT(MONTH FROM expense_date::date) = $1
         ORDER BY expense_date DESC
 	`
@@ -166,7 +168,7 @@ func GetAllExpenseByCategory(month int) ([]struct {
 	for rows.Next() {
 		var expense models.Expense
 
-		err := rows.Scan(&expense.Id, &expense.User_id, &expense.Category_id,
+		err := rows.Scan(&expense.Id, &expense.User_id, &expense.Category_id, &expense.Color,
 			&expense.Amount, &expense.Name, &expense.Description, &expense.Expense_date, &expense.Expense_time)
 		if err != nil {
 			return nil, err
@@ -186,13 +188,15 @@ func GetAllExpenseByCategory(month int) ([]struct {
 		return nil, err
 	}
 
-	// Create a slice of result structs with totals
 	var result []struct {
 		Category string           `json:"category"`
 		Expenses []models.Expense `json:"expenses"`
 		Total    float32          `json:"total"` // Use float32 here
 	}
 	for category, expenses := range expensesByCategory {
+		if err != nil {
+			return nil, err
+		}
 		result = append(result, struct {
 			Category string           `json:"category"`
 			Expenses []models.Expense `json:"expenses"`
@@ -204,7 +208,6 @@ func GetAllExpenseByCategory(month int) ([]struct {
 		})
 	}
 
-	// Sort result by total in descending order
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].Total > result[j].Total
 	})

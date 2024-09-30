@@ -38,7 +38,6 @@ func PostExpense(c *gin.Context) {
 func GetExpense(c *gin.Context) {
 	idParam := c.Query("id")
 
-	// Convert the 'id' to an integer
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})

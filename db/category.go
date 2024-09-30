@@ -154,3 +154,17 @@ func GetAllCategoriesWithTotals() ([]struct {
 	}
 	return result, nil
 }
+
+func GetCategoryColor(name string) (string, error) {
+	sqlScript := `
+		SELECT color
+		FROM categories	
+		WHERE name = $1
+	`
+	var color string
+	err := Pool.QueryRow(context.Background(), sqlScript, name).Scan(&color)
+	if err != nil {
+		return "", err
+	}
+	return color, nil
+}
