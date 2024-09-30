@@ -122,6 +122,11 @@ func GetAllExpensesByDate(month int) ([]struct {
 		Expenses []models.Expense `json:"expenses"`
 	}
 	for day, expenses := range expensesByDate {
+
+		sort.Slice(expenses, func(i, j int) bool {
+			return expenses[i].Expense_time > expenses[j].Expense_time
+		})
+
 		result = append(result, struct {
 			Day      string           `json:"day"`
 			Expenses []models.Expense `json:"expenses"`
