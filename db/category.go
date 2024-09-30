@@ -168,3 +168,29 @@ func GetCategoryColor(name string) (string, error) {
 	}
 	return color, nil
 }
+
+func GetExpensesByCategory(category_id int) ([]models.Expense, error) {
+	sqlScript := `
+		SELECT e.id, e.user_id, e.category_id, e.amount, e.name, e.description, e.expense_date, e.expense_time
+		FROM expenses e
+		WHERE category_id = $1
+	`
+	rows, err := Pool.Query(context.Background(), sqlScript, category_id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []models.Expense
+	for rows.Next() {
+		var expense models.Expense
+
+		err := rows.Scan(&expense.Id, &expense.User_id, &expense.Category_id,
+			&expense.Amount, &expense.Name, &expense.Description, &expense.Expense_date, &expense.Expense_time)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, expense)
+	}
+	return result, nil
+}

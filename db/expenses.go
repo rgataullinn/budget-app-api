@@ -85,6 +85,7 @@ func GetAllExpensesByDate(month int) ([]struct {
 	Day      string           `json:"day"`
 	Expenses []models.Expense `json:"expenses"`
 }, error) {
+	// TODO: organize the same as by category
 	sqlScript := `
     SELECT e.id, e.user_id, e.category_id, c.name AS category, c.color, e.amount, e.name, e.description, e.expense_date, e.expense_time
     FROM expenses e
@@ -145,73 +146,48 @@ func GetAllExpensesByDate(month int) ([]struct {
 
 func GetAllExpenseByCategory(month int) ([]struct {
 	Category string           `json:"category"`
-	Expenses []models.Expense `json:"expenses"`
 	Total    float32          `json:"total"`
+	Expenses []models.Expense `json:"expenses"`
 }, error) {
 	sqlScript := `
-		SELECT e.id, e.user_id, e.category_id, c.color, e.amount, e.name, e.description, e.expense_date, e.expense_time
-        FROM expenses e
-		LEFT JOIN categories c
-		ON e.category_id = c.id
-		WHERE EXTRACT(MONTH FROM expense_date::date) = $1
-        ORDER BY expense_date DESC
-	`
-	expensesByCategory := make(map[string][]models.Expense)
-	totalByCategory := make(map[string]float32)
-
+			SELECT c.id, c.name, SUM(e.amount) AS total
+			FROM categories c
+			LEFT JOIN expenses e
+			ON c.id = e.category_id 
+			WHERE EXTRACT(MONTH FROM e.expense_date::date) = $1
+			GROUP BY c.id
+			ORDER BY total DESC;
+		`
 	rows, err := Pool.Query(context.Background(), sqlScript, month)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	for rows.Next() {
-		var expense models.Expense
-
-		err := rows.Scan(&expense.Id, &expense.User_id, &expense.Category_id, &expense.Color,
-			&expense.Amount, &expense.Name, &expense.Description, &expense.Expense_date, &expense.Expense_time)
-		if err != nil {
-			return nil, err
-		}
-
-		categoryName, err := GetCategoryName(expense.Category_id)
-		if err != nil {
-			return nil, err
-		}
-
-		expensesByCategory[categoryName] =
-			append(expensesByCategory[categoryName], expense)
-		totalByCategory[categoryName] += expense.Amount // No need for conversion
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
 	var result []struct {
 		Category string           `json:"category"`
+		Total    float32          `json:"total"`
 		Expenses []models.Expense `json:"expenses"`
-		Total    float32          `json:"total"` // Use float32 here
 	}
-	for category, expenses := range expensesByCategory {
+
+	for rows.Next() {
+		var sub_res struct {
+			Category string           `json:"category"`
+			Total    float32          `json:"total"`
+			Expenses []models.Expense `json:"expenses"`
+		}
+		var category_id int
+		err := rows.Scan(&category_id, &sub_res.Category, &sub_res.Total)
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, struct {
-			Category string           `json:"category"`
-			Expenses []models.Expense `json:"expenses"`
-			Total    float32          `json:"total"` // Use float32 here
-		}{
-			Category: category,
-			Expenses: expenses,
-			Total:    totalByCategory[category],
-		})
+
+		sub_res.Expenses, err = GetExpensesByCategory(category_id)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, sub_res)
 	}
-
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].Total > result[j].Total
-	})
-
 	return result, nil
 }
 
