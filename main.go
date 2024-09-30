@@ -44,7 +44,7 @@ func main() {
 	router.GET("/category", handlers.GetCategory)
 	router.DELETE("/category", handlers.DeleteCategory)
 	router.GET("/categories", handlers.GetAllCategories)
-
+	router.GET("/categoriesAndTotals", handlers.GetAllCategoriesWithTotals)
 	router.GET("/totalSpent", handlers.GetTotalSpent)
 	// router.GET("/totatlEarn", handlers.GetTotalEarns)
 	connString := "postgres://" + dbUser + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName

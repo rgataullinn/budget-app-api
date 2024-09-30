@@ -77,3 +77,12 @@ func GetAllCategories(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"categories": categories})
 }
+
+func GetAllCategoriesWithTotals(c *gin.Context) {
+	categoriesAndTotals, err := db.GetAllCategoriesWithTotals()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"categories": categoriesAndTotals})
+}

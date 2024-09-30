@@ -106,3 +106,41 @@ func GetAllCategoriesFromDb() ([]struct {
 	}
 	return result, nil
 }
+
+func GetAllCategoriesWithTotals() ([]struct {
+	Name  string  `json:"name"`
+	Total float32 `json:"total"`
+}, error) {
+	sqlScript := `
+		select c.name, sum(e.amount) as total
+		from categories c 
+		join expenses e 
+		on c.id = e.category_id 
+		group by c.id;
+	`
+	var result []struct {
+		Name  string  `json:"name"`
+		Total float32 `json:"total"`
+	}
+	rows, err := Pool.Query(context.Background(), sqlScript)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var name string
+		var total float32
+		err := rows.Scan(&name, &total)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, struct {
+			Name  string  `json:"name"`
+			Total float32 `json:"total"`
+		}{
+			Name:  name,
+			Total: total,
+		})
+	}
+	return result, nil
+}
