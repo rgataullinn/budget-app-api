@@ -147,10 +147,11 @@ func GetAllExpensesByDate(month int) ([]struct {
 func GetAllExpenseByCategory(month int) ([]struct {
 	Category string           `json:"category"`
 	Total    float32          `json:"total"`
+	Color    string           `json:"color"`
 	Expenses []models.Expense `json:"expenses"`
 }, error) {
 	sqlScript := `
-			SELECT c.id, c.name, SUM(e.amount) AS total
+			SELECT c.id, c.name, c.color, SUM(e.amount) AS total
 			FROM categories c
 			LEFT JOIN expenses e
 			ON c.id = e.category_id 
@@ -167,6 +168,7 @@ func GetAllExpenseByCategory(month int) ([]struct {
 	var result []struct {
 		Category string           `json:"category"`
 		Total    float32          `json:"total"`
+		Color    string           `json:"color"`
 		Expenses []models.Expense `json:"expenses"`
 	}
 
@@ -174,10 +176,11 @@ func GetAllExpenseByCategory(month int) ([]struct {
 		var sub_res struct {
 			Category string           `json:"category"`
 			Total    float32          `json:"total"`
+			Color    string           `json:"color"`
 			Expenses []models.Expense `json:"expenses"`
 		}
 		var category_id int
-		err := rows.Scan(&category_id, &sub_res.Category, &sub_res.Total)
+		err := rows.Scan(&category_id, &sub_res.Category, &sub_res.Color, &sub_res.Total)
 		if err != nil {
 			return nil, err
 		}
