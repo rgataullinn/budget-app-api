@@ -40,13 +40,15 @@ func main() {
 	router.GET("/expensesByCategory", handlers.GetAllExpensesByCategory)
 	router.DELETE("/expense", handlers.DeleteExpense)
 
-	router.POST("/category", handlers.PostCategory)
+	router.POST("/category", handlers.CreateCategory)
+	router.PUT("/category", handlers.UpdateCategory)
 	router.GET("/category", handlers.GetCategory)
+	router.GET("/categories", handlers.GetCategories)
 	router.DELETE("/category", handlers.DeleteCategory)
-	router.GET("/categories", handlers.GetAllCategories)
-	router.GET("/categoriesAndTotals", handlers.GetAllCategoriesWithTotals)
+
 	router.GET("/totalSpent", handlers.GetTotalSpent)
 	// router.GET("/totatlEarn", handlers.GetTotalEarns)
+
 	connString := "postgres://" + dbUser + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName
 	db.ConnectDB(connString)
 	defer db.CloseDB()

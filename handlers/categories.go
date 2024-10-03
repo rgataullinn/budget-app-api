@@ -9,43 +9,70 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func PostCategory(c *gin.Context) {
+func CreateCategory(c *gin.Context) {
 	var category models.Category
 	if err := c.ShouldBindJSON(&category); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Bad request"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid request data",
+			"details": err.Error()})
 		return
 	}
 
-	if category.Id != 0 {
-		err := db.UpdateCategoryInDb(category)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"message": "Category updated"})
-		return
-	}
-	err := db.AddCategoryInDb(category)
+	err := db.CreateCategory(category)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to create category in db",
+			"details": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Category added"})
 }
 
+func UpdateCategory(c *gin.Context) {
+	idParam := c.Query("id")
+
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid ID format",
+			"details": err.Error()})
+		return
+	}
+	var category models.Category
+	if err := c.ShouldBindJSON(&category); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid request data",
+			"details": err.Error()})
+		return
+	}
+	category.Id = id
+
+	err = db.UpdateCategory(category)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Failed to update category in db",
+			"details": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Category updated"})
+}
+
 func GetCategory(c *gin.Context) {
 	idParam := c.Query("id")
 
-	// Convert the 'id' to an integer
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid ID format",
+			"details": err.Error()})
 		return
 	}
 
-	category, err := db.GetCategoryInDb(id)
+	category, err := db.GetCategory(id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to get category from db",
+			"details": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"category": category})
@@ -53,36 +80,31 @@ func GetCategory(c *gin.Context) {
 
 func DeleteCategory(c *gin.Context) {
 	idParam := c.Query("id")
-
-	// Convert the 'id' to an integer
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid ID format",
+			"details": err.Error()})
 		return
 	}
 
-	err = db.DeleteCategoryInDb(id)
+	err = db.DeleteCategory(id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to delete category from db",
+			"details": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "category deleted"})
 }
 
-func GetAllCategories(c *gin.Context) {
-	categories, err := db.GetAllCategoriesFromDb()
+func GetCategories(c *gin.Context) {
+	categories, err := db.GetCategories()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to get categories from db",
+			"details": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"categories": categories})
-}
-
-func GetAllCategoriesWithTotals(c *gin.Context) {
-	categoriesAndTotals, err := db.GetAllCategoriesWithTotals()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"categories": categoriesAndTotals})
 }
