@@ -99,7 +99,14 @@ func DeleteCategory(c *gin.Context) {
 }
 
 func GetCategories(c *gin.Context) {
-	categories, err := db.GetCategories()
+	month, err := strconv.Atoi(c.Query("month"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "wrong month format",
+			"details": err.Error()})
+		return
+	}
+	categories, err := db.GetCategories(month)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to get categories from db",
