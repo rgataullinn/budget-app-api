@@ -63,7 +63,7 @@ func DeleteCategory(id int) error {
 
 func GetCategories(month int) ([]models.Category, error) {
 	sqlScript := `
-		select c.name, sum(e.amount) as total, c.color
+		select c.id, c.name, sum(e.amount) as total, c.color
 		from categories c 
 		join expenses e 
 		on c.id = e.category_id 
@@ -78,7 +78,7 @@ func GetCategories(month int) ([]models.Category, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var category models.Category
-		err := rows.Scan(&category.Name, &category.Total, &category.Color)
+		err := rows.Scan(&category.Id, &category.Name, &category.Total, &category.Color)
 		if err != nil {
 			return nil, err
 		}
