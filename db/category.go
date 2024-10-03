@@ -86,3 +86,26 @@ func GetCategories(month int) ([]models.Category, error) {
 	}
 	return result, nil
 }
+
+func GetCategoriesList() ([]string, error) {
+	sqlScript := `
+		SELECT name
+		FROM categories
+	`
+	rows, err := Pool.Query(context.Background(), sqlScript)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []string
+	for rows.Next() {
+		var category_name string
+		err := rows.Scan(&category_name)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, category_name)
+	}
+	return result, nil
+}

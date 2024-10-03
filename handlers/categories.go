@@ -115,3 +115,13 @@ func GetCategories(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"categories": categories})
 }
+
+func GetCategoriesList(c *gin.Context) {
+	categories, err := db.GetCategoriesList()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to get list of categories from db",
+			"details": err.Error()})
+	}
+	c.JSON(http.StatusOK, gin.H{"categories": categories})
+}

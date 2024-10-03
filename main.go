@@ -45,6 +45,7 @@ func main() {
 	router.PUT("/category", handlers.UpdateCategory)
 	router.GET("/category", handlers.GetCategory)
 	router.GET("/categories", handlers.GetCategories)
+	router.GET("/categoriesList", handlers.GetCategoriesList)
 	router.DELETE("/category", handlers.DeleteCategory)
 
 	router.GET("/totalSpent", handlers.GetTotalSpent)
