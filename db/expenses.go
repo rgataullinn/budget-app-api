@@ -200,7 +200,7 @@ func GetAllDatesWithExpenses(month int) ([]struct {
 
 func getExpensesByDate(expense_date string, month int) ([]models.Expense, error) {
 	sqlScript := `
-	SELECT e.id, e.user_id, c.name, c.color, e.category_id, e.amount, e.name, e.description, e.expense_time
+	SELECT e.id, e.user_id, c.name, c.color, e.category_id, e.amount, e.name, e.description, e.expense_time, e.expense_date
 	FROM expenses e
 	LEFT JOIN categories c
 	ON e.category_id = c.id
@@ -217,7 +217,7 @@ func getExpensesByDate(expense_date string, month int) ([]models.Expense, error)
 		var expense models.Expense
 
 		err := rows.Scan(&expense.Id, &expense.User_id, &expense.Category, &expense.Color, &expense.Category_id,
-			&expense.Amount, &expense.Name, &expense.Description, &expense.Expense_time)
+			&expense.Amount, &expense.Name, &expense.Description, &expense.Expense_time, &expense.Expense_date)
 		if err != nil {
 			return nil, err
 		}
