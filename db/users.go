@@ -18,19 +18,7 @@ func AddUserInDb(newUser models.User) error {
 	return nil
 }
 
-func IsExist(username string) (bool, error) {
-	sqlScript := `
-		SELECT COUNT(1) FROM users WHERE username = $1;
-	`
-	var count int
-	err := Pool.QueryRow(context.Background(), sqlScript, username).Scan(&count)
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
-}
-
-func ValidateUserCredentials(username string, password string) (bool, error) {
+func Login(username string, password string) (bool, int, error) {
 	sqlScript := `
         SELECT EXISTS (
             SELECT 1 FROM users WHERE username = $1 AND password = crypt($2, password)
@@ -39,9 +27,33 @@ func ValidateUserCredentials(username string, password string) (bool, error) {
 	var exists bool
 	err := Pool.QueryRow(context.Background(), sqlScript, username, password).Scan(&exists)
 	if err != nil {
-		return false, err
+		return false, -1, err
 	}
-	return exists, nil
+
+	if exists {
+		id, err := getUserId(username)
+		if err != nil {
+			return false, -1, err
+		}
+		return true, id, nil
+	}
+
+	return exists, -1, nil
+}
+
+func getUserId(username string) (int, error) {
+	sqlScript := `
+	select id
+	from users
+	where username = $1;
+	`
+
+	var id int
+	err := Pool.QueryRow(context.Background(), sqlScript, username).Scan(&id)
+	if err != nil {
+		return -1, err
+	}
+	return id, nil
 }
 
 func DeleteUserInDb(id int) error {

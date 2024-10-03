@@ -48,17 +48,7 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	isExist, err := db.IsExist(newUser.Username)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred"})
-		return
-	}
-	if isExist {
-		c.JSON(http.StatusConflict, gin.H{"error": "User with the same username already exists"})
-		return
-	}
-
-	err = db.AddUserInDb(newUser)
+	err := db.AddUserInDb(newUser)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
@@ -74,17 +64,7 @@ func LoginUser(c *gin.Context) {
 		return
 	}
 
-	isExist, err := db.IsExist(user.Username)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred"})
-		return
-	}
-	if !isExist {
-		c.JSON(http.StatusConflict, gin.H{"error": "User with this username don't exist"})
-		return
-	}
-
-	isValid, err := db.ValidateUserCredentials(user.Username, user.Password)
+	isValid, id, err := db.Login(user.Username, user.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred"})
 		return
@@ -93,8 +73,9 @@ func LoginUser(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Wrong password:("})
 		return
 	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
+	c.JSON(http.StatusOK, gin.H{
+		"id":      id,
+		"message": "Login successful"})
 }
 
 func DeleteUser(c *gin.Context) {
