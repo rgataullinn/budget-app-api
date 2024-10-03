@@ -87,9 +87,9 @@ func GetCategories(month int) ([]models.Category, error) {
 	return result, nil
 }
 
-func GetCategoriesList() ([]string, error) {
+func GetCategoriesList() ([]models.Expense, error) {
 	sqlScript := `
-		SELECT name
+		SELECT id, name
 		FROM categories
 	`
 	rows, err := Pool.Query(context.Background(), sqlScript)
@@ -98,14 +98,14 @@ func GetCategoriesList() ([]string, error) {
 	}
 	defer rows.Close()
 
-	var result []string
+	var result []models.Expense
 	for rows.Next() {
-		var category_name string
-		err := rows.Scan(&category_name)
+		var expense models.Expense
+		err := rows.Scan(&expense.Id, &expense.Name)
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, category_name)
+		result = append(result, expense)
 	}
 	return result, nil
 }
