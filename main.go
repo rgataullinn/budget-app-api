@@ -31,7 +31,7 @@ func main() {
 	}))
 
 	router.POST("/users", handlers.CreateUser)
-	router.GET("/users", handlers.LoginUser)
+	router.POST("/login", handlers.LoginUser)
 	router.DELETE("/users", handlers.DeleteUser)
 
 	router.POST("/expense", handlers.CreateExpense)

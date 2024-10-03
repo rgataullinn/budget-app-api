@@ -17,17 +17,14 @@ func isValidData(user models.User) (bool, string) {
 	username := user.Username
 	password := user.Password
 	email := user.Email
-	// Validate username
 	if len(username) < 3 || len(username) > 20 || strings.Contains(username, " ") || !unicode.IsLetter(rune(username[0])) {
 		return false, "Username is not valid. It must be 3-20 characters long, start with a letter, and contain no spaces."
 	}
 
-	// Validate password
 	if len(password) < 6 || strings.Contains(password, " ") {
 		return false, "Password is not valid. It must be at least 6 characters long and contain no spaces."
 	}
 
-	// Validate email
 	const emailRegex = `^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$`
 	re := regexp.MustCompile(emailRegex)
 	if !re.MatchString(email) {
