@@ -3,10 +3,9 @@ package db
 import (
 	"context"
 	"personal-finance-api/models"
-	"sort"
 )
 
-func AddExpenseInDb(newExpense models.Expense) error {
+func CreateExpense(newExpense models.Expense) error {
 	sqlScript := `
 		INSERT INTO expenses (user_id, category_id, amount,name, description, expense_date, expense_time)
 		VALUES ($1, $2, $3, $4, $5, $6, $7);
@@ -27,7 +26,7 @@ func AddExpenseInDb(newExpense models.Expense) error {
 	return nil
 }
 
-func UpdateExpenseInDb(expense models.Expense) error {
+func UpdateExpense(expense models.Expense) error {
 	sqlScript := `
 		UPDATE expenses
 		SET
@@ -58,7 +57,7 @@ func UpdateExpenseInDb(expense models.Expense) error {
 	return nil
 }
 
-func GetExpenseFromDb(id int) (*models.Expense, error) {
+func GetExpense(id int) (models.Expense, error) {
 	sqlScript := `
         SELECT id, user_id, category_id, amount,name, description, expense_date, expense_time
         FROM expenses
@@ -75,76 +74,13 @@ func GetExpenseFromDb(id int) (*models.Expense, error) {
 	err := row.Scan(&expense.Id, &expense.User_id, &expense.Category_id,
 		&expense.Amount, &expense.Name, &expense.Description, &expense.Expense_date, &expense.Expense_time)
 	if err != nil {
-		return nil, err
+		return models.Expense{}, err
 	}
 
-	return &expense, nil
+	return expense, nil
 }
 
-func GetAllExpensesByDate(month int) ([]struct {
-	Day      string           `json:"day"`
-	Expenses []models.Expense `json:"expenses"`
-}, error) {
-	// TODO: organize the same as by category
-	sqlScript := `
-    SELECT e.id, e.user_id, e.category_id, c.name AS category, c.color, e.amount, e.name, e.description, e.expense_date, e.expense_time
-    FROM expenses e
-    JOIN categories c ON e.category_id = c.id
-	WHERE EXTRACT(MONTH FROM expense_date::date) = $1
-    ORDER BY e.expense_date DESC
-`
-
-	expensesByDate := make(map[string][]models.Expense)
-
-	rows, err := Pool.Query(context.Background(), sqlScript, month)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var expense models.Expense
-
-		err := rows.Scan(&expense.Id, &expense.User_id, &expense.Category_id, &expense.Category, &expense.Color,
-			&expense.Amount, &expense.Name, &expense.Description, &expense.Expense_date, &expense.Expense_time)
-		if err != nil {
-			return nil, err
-		}
-
-		expensesByDate[expense.Expense_date] = append(expensesByDate[expense.Expense_date], expense)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
-	var result []struct {
-		Day      string           `json:"day"`
-		Expenses []models.Expense `json:"expenses"`
-	}
-	for day, expenses := range expensesByDate {
-
-		sort.Slice(expenses, func(i, j int) bool {
-			return expenses[i].Expense_time > expenses[j].Expense_time
-		})
-
-		result = append(result, struct {
-			Day      string           `json:"day"`
-			Expenses []models.Expense `json:"expenses"`
-		}{
-			Day:      day,
-			Expenses: expenses,
-		})
-	}
-
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].Day > result[j].Day
-	})
-
-	return result, nil
-}
-
-func GetAllExpenseByCategory(month int) ([]struct {
+func GetAllCategoriesWithExpenses(month int) ([]struct {
 	Category string           `json:"category"`
 	Total    float32          `json:"total"`
 	Color    string           `json:"color"`
@@ -185,7 +121,7 @@ func GetAllExpenseByCategory(month int) ([]struct {
 			return nil, err
 		}
 
-		sub_res.Expenses, err = GetExpensesByCategory(category_id)
+		sub_res.Expenses, err = getExpensesByCategory(category_id, month)
 		if err != nil {
 			return nil, err
 		}
@@ -194,25 +130,13 @@ func GetAllExpenseByCategory(month int) ([]struct {
 	return result, nil
 }
 
-func DeleteExpenseFromDb(id int) error {
-	sqlScript := `
-		DELETE FROM expenses
-		WHERE id = $1;
-	`
-	_, err := Pool.Exec(context.Background(), sqlScript, id)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func GetExpensesByCategory(category_id int) ([]models.Expense, error) {
+func getExpensesByCategory(category_id int, month int) ([]models.Expense, error) {
 	sqlScript := `
 		SELECT e.id, e.user_id, e.category_id, e.amount, e.name, e.description, e.expense_date, e.expense_time
 		FROM expenses e
-		WHERE category_id = $1
+		WHERE e.category_id = $1 AND EXTRACT(MONTH FROM e.expense_date::date) = $2
 	`
-	rows, err := Pool.Query(context.Background(), sqlScript, category_id)
+	rows, err := Pool.Query(context.Background(), sqlScript, category_id, month)
 	if err != nil {
 		return nil, err
 	}
@@ -230,4 +154,86 @@ func GetExpensesByCategory(category_id int) ([]models.Expense, error) {
 		result = append(result, expense)
 	}
 	return result, nil
+}
+
+func GetAllDatesWithExpenses(month int) ([]struct {
+	Day      string           `json:"day"`
+	Expenses []models.Expense `json:"expenses"`
+}, error) {
+	sqlScript := `
+    select e.expense_date
+	from expenses e 
+	where EXTRACT(MONTH FROM e.expense_date::date) = $1
+	group by e.expense_date 
+	order by e.expense_date desc;
+`
+
+	rows, err := Pool.Query(context.Background(), sqlScript, month)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []struct {
+		Day      string           `json:"day"`
+		Expenses []models.Expense `json:"expenses"`
+	}
+
+	for rows.Next() {
+		var sub_res struct {
+			Day      string           `json:"day"`
+			Expenses []models.Expense `json:"expenses"`
+		}
+		err := rows.Scan(&sub_res.Day)
+		if err != nil {
+			return nil, err
+		}
+		sub_res.Expenses, err = getExpensesByDate(sub_res.Day, month)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, sub_res)
+	}
+
+	return result, nil
+}
+
+func getExpensesByDate(expense_date string, month int) ([]models.Expense, error) {
+	sqlScript := `
+	SELECT e.id, e.user_id, c.name, e.category_id, e.amount, e.name, e.description, e.expense_time
+	FROM expenses e
+	LEFT JOIN categories c
+	ON e.category_id = c.id
+	WHERE e.expense_date = $1 AND EXTRACT(MONTH FROM e.expense_date::date) = $2
+`
+	rows, err := Pool.Query(context.Background(), sqlScript, expense_date, month)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []models.Expense
+	for rows.Next() {
+		var expense models.Expense
+
+		err := rows.Scan(&expense.Id, &expense.User_id, &expense.Category, &expense.Category_id,
+			&expense.Amount, &expense.Name, &expense.Description, &expense.Expense_time)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, expense)
+	}
+	return result, nil
+}
+
+func DeleteExpenseFromDb(id int) error {
+	sqlScript := `
+		DELETE FROM expenses
+		WHERE id = $1;
+	`
+	_, err := Pool.Exec(context.Background(), sqlScript, id)
+	if err != nil {
+		return err
+	}
+	return nil
 }

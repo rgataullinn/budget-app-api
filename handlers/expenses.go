@@ -9,30 +9,51 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func PostExpense(c *gin.Context) {
+func CreateExpense(c *gin.Context) {
 	var expense models.Expense
 	if err := c.ShouldBindJSON(&expense); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Bad request"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid request data",
+			"details": err.Error()})
 		return
 	}
 
-	if expense.Id != 0 {
-		err := db.UpdateExpenseInDb(expense)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"message": "Expense updated"})
-		return
-	}
-
-	err := db.AddExpenseInDb(expense)
+	err := db.CreateExpense(expense)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":  "Failed to add expense into db",
+			"detail": err.Error})
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "Expense added"})
+}
 
+func UpdateExpense(c *gin.Context) {
+	var expense models.Expense
+	if err := c.ShouldBindJSON(&expense); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid request data",
+			"details": err.Error()})
+		return
+	}
+	idParam := c.Query("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid ID format",
+			"details": err.Error()})
+		return
+	}
+	expense.Id = id
+
+	err = db.UpdateExpense(expense)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":  "Failed update expense in db",
+			"detail": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Expense updated"})
 }
 
 func GetExpense(c *gin.Context) {
@@ -40,43 +61,54 @@ func GetExpense(c *gin.Context) {
 
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid ID format",
+			"details": err.Error()})
 		return
 	}
 
-	expense, err := db.GetExpenseFromDb(id)
+	expense, err := db.GetExpense(id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":  "Failed to get expense from db",
+			"detail": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"expense": expense})
-
 }
 
-func GetAllExpensesByDate(c *gin.Context) {
+func GetAllCategoriesWithExpenses(c *gin.Context) {
 	month, err := strconv.Atoi(c.Query("month"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "wrong month format",
+			"details": err.Error()})
 		return
 	}
-	expenses, err := db.GetAllExpensesByDate(month)
+	expenses, err := db.GetAllCategoriesWithExpenses(month)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":  "Failed to get expenses from db",
+			"detail": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"expenses": expenses})
 }
 
-func GetAllExpensesByCategory(c *gin.Context) {
+func GetAllDatesWithExpenses(c *gin.Context) {
 	month, err := strconv.Atoi(c.Query("month"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":  "wrong month format",
+			"detail": err.Error()})
 		return
 	}
-	expenses, err := db.GetAllExpenseByCategory(month)
+	expenses, err := db.GetAllDatesWithExpenses(month)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":  "failed to get expenses from db",
+			"detail": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"expenses": expenses})
@@ -85,18 +117,21 @@ func GetAllExpensesByCategory(c *gin.Context) {
 func DeleteExpense(c *gin.Context) {
 	idParam := c.Query("id")
 
-	// Convert the 'id' to an integer
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid ID format",
+			"details": err.Error()})
 		return
 	}
 
 	err = db.DeleteExpenseFromDb(id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to delete expense from db",
+			"details": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "User deleted"})
+	c.JSON(http.StatusOK, gin.H{"message": "Expense deleted"})
 }
