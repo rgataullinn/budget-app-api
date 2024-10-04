@@ -205,6 +205,7 @@ func getExpensesByDate(expense_date string, month int) ([]models.Expense, error)
 	LEFT JOIN categories c
 	ON e.category_id = c.id
 	WHERE e.expense_date = $1 AND EXTRACT(MONTH FROM e.expense_date::date) = $2
+	ORDER BY e.expense_time desc
 `
 	rows, err := Pool.Query(context.Background(), sqlScript, expense_date, month)
 	if err != nil {
