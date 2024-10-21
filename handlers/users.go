@@ -2,15 +2,19 @@ package handlers
 
 import (
 	"net/http"
+	"os"
 	"personal-finance-api/models"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	"personal-finance-api/db"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func isValidData(user models.User) (bool, string) {
@@ -42,13 +46,20 @@ func CreateUser(c *gin.Context) {
 	}
 
 	isValid, errMsg := isValidData(newUser)
-
 	if !isValid {
 		c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
 		return
 	}
 
-	err := db.AddUserInDb(newUser)
+	hashed_password, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), 10)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Failed to hash password"})
+		return
+	}
+	newUser.Password = string(hashed_password)
+
+	err = db.AddUserInDb(newUser)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
@@ -60,28 +71,56 @@ func CreateUser(c *gin.Context) {
 func LoginUser(c *gin.Context) {
 	var user models.User
 	if err := c.ShouldBindJSON(&user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Bad request"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read username and password"})
 		return
 	}
 
-	isValid, id, err := db.Login(user.Username, user.Password)
+	userId, hashedPassword, err := db.GetUserPassword(user.Username)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid password or username"})
 		return
 	}
-	if !isValid {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Wrong password:("})
+
+	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(user.Password))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid password or username"})
 		return
 	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": userId,
+		"exp": time.Now().Add(time.Hour * 2).Unix(),
+	})
+
+	tokenString, err := token.SignedString([]byte(os.Getenv("SECRET")))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid password or username"})
+		return
+	}
+
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(
+		"Auth",
+		tokenString,
+		3600*2,
+		"",
+		"",
+		false,
+		true,
+	)
+
 	c.JSON(http.StatusOK, gin.H{
-		"id":      id,
-		"message": "Login successful"})
+		"id":      userId,
+		"message": "Login successful",
+	})
 }
 
 func DeleteUser(c *gin.Context) {
 	idParam := c.Query("id")
 
-	// Convert the 'id' to an integer
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
@@ -95,5 +134,9 @@ func DeleteUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "User deleted successful"})
+}
 
+func Validate(c *gin.Context) {
+	user, _ := c.Get("user")
+	c.JSON(http.StatusOK, gin.H{"user": user})
 }
