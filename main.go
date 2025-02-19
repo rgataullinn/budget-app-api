@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"personal-finance-api/db"
 	"personal-finance-api/handlers"
@@ -8,13 +9,14 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	// err := godotenv.Load()
-	// if err != nil {
-	// 	log.Fatal("Error loading .env file")
-	// }
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 	dbUser := os.Getenv("DB_USER")
 	dbPassword := os.Getenv("DB_PASSWORD")
 	dbHost := os.Getenv("DB_HOST")
@@ -36,12 +38,11 @@ func main() {
 	router.DELETE("/users", handlers.DeleteUser)
 	router.GET("/validate", middleware.RequireAuth, handlers.Validate)
 
-	router.POST("/expense", handlers.CreateExpense)
-	router.PUT("/expense", handlers.UpdateExpense)
-	router.GET("/expense", handlers.GetExpense)
-	router.GET("/expensesByDate", handlers.GetAllDatesWithExpenses)
-	router.GET("/expensesByCategory", handlers.GetAllCategoriesWithExpenses)
-	router.DELETE("/expense", handlers.DeleteExpense)
+	router.POST("/expense", middleware.RequireAuth, handlers.CreateExpense)
+	router.PUT("/expense", middleware.RequireAuth, handlers.UpdateExpense)
+	router.GET("/expense", middleware.RequireAuth, handlers.GetExpense)
+	router.GET("/expenses", middleware.RequireAuth, handlers.GetAllExpenses)
+	router.DELETE("/expense", middleware.RequireAuth, handlers.DeleteExpense)
 
 	router.POST("/category", handlers.CreateCategory)
 	router.PUT("/category", handlers.UpdateCategory)

@@ -3,7 +3,9 @@ package handlers
 import (
 	"net/http"
 	"personal-finance-api/db"
+	"personal-finance-api/helpers"
 	"personal-finance-api/models"
+
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -18,11 +20,20 @@ func CreateExpense(c *gin.Context) {
 		return
 	}
 
-	err := db.CreateExpense(expense)
+	userId, err := helpers.GetUserIdFromCookie(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":  "Failed to get userId from cookie",
+			"detail": err.Error(),
+		})
+		return
+	}
+	expense.User_id = userId
+	err = db.CreateExpense(expense)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":  "Failed to add expense into db",
-			"detail": err.Error})
+			"detail": err.Error()})
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "Expense added"})
@@ -36,15 +47,16 @@ func UpdateExpense(c *gin.Context) {
 			"details": err.Error()})
 		return
 	}
-	idParam := c.Query("id")
-	id, err := strconv.Atoi(idParam)
+
+	userId, err := helpers.GetUserIdFromCookie(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Invalid ID format",
-			"details": err.Error()})
+			"error":  "Failed to get userId from cookie",
+			"detail": err.Error(),
+		})
 		return
 	}
-	expense.Id = id
+	expense.User_id = userId
 
 	err = db.UpdateExpense(expense)
 	if err != nil {
@@ -78,7 +90,9 @@ func GetExpense(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"expense": expense})
 }
 
-func GetAllCategoriesWithExpenses(c *gin.Context) {
+func GetAllExpenses(c *gin.Context) {
+	groupBy := c.Query("groupBy")
+
 	month, err := strconv.Atoi(c.Query("month"))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -86,32 +100,36 @@ func GetAllCategoriesWithExpenses(c *gin.Context) {
 			"details": err.Error()})
 		return
 	}
-	expenses, err := db.GetAllCategoriesWithExpenses(month)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":  "Failed to get expenses from db",
-			"detail": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"expenses": expenses})
-}
 
-func GetAllDatesWithExpenses(c *gin.Context) {
-	month, err := strconv.Atoi(c.Query("month"))
+	user_id, err := helpers.GetUserIdFromCookie(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":  "wrong month format",
-			"detail": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":  "Failed to get userId from cookie",
+			"detail": err.Error(),
+		})
 		return
 	}
-	expenses, err := db.GetAllDatesWithExpenses(month)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":  "failed to get expenses from db",
-			"detail": err.Error()})
-		return
+
+	switch groupBy {
+	case "day":
+		expensesGroupedByDay, err := db.GetAllExpensesGroupedByDay(month, user_id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":  "failed to get expenses from db",
+				"detail": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"result": expensesGroupedByDay})
+	case "category":
+		expensesGroupedByCategory, err := db.GetAllExpensesGroupedByCategory(month, user_id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":  "failed to get expenses from db",
+				"detail": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"result": expensesGroupedByCategory})
 	}
-	c.JSON(http.StatusOK, gin.H{"expenses": expenses})
 }
 
 func DeleteExpense(c *gin.Context) {
