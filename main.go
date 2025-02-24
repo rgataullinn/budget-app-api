@@ -24,10 +24,10 @@ func main() {
 	router := gin.Default()
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
+		AllowOrigins:     []string{"http://localhost:3000"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
+		ExposeHeaders:    []string{"Content-Length", "Set-Cookie"},
 		AllowCredentials: true,
 	}))
 
@@ -36,12 +36,11 @@ func main() {
 	router.DELETE("/users", handlers.DeleteUser)
 	router.GET("/validate", middleware.RequireAuth, handlers.Validate)
 
-	router.POST("/expense", handlers.CreateExpense)
-	router.PUT("/expense", handlers.UpdateExpense)
-	router.GET("/expense", handlers.GetExpense)
-	router.GET("/expensesByDate", handlers.GetAllDatesWithExpenses)
-	router.GET("/expensesByCategory", handlers.GetAllCategoriesWithExpenses)
-	router.DELETE("/expense", handlers.DeleteExpense)
+	router.POST("/expense", middleware.RequireAuth, handlers.CreateExpense)
+	router.PUT("/expense", middleware.RequireAuth, handlers.UpdateExpense)
+	router.GET("/expense", middleware.RequireAuth, handlers.GetExpense)
+	router.GET("/expenses", middleware.RequireAuth, handlers.GetAllExpenses)
+	router.DELETE("/expense", middleware.RequireAuth, handlers.DeleteExpense)
 
 	router.POST("/category", handlers.CreateCategory)
 	router.PUT("/category", handlers.UpdateCategory)

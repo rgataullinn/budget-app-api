@@ -15,6 +15,7 @@ func RequireAuth(c *gin.Context) {
 	tokenString, err := c.Cookie("Auth")
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
+		return
 	}
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
@@ -31,17 +32,19 @@ func RequireAuth(c *gin.Context) {
 		fmt.Print(claims["sub"].(float64))
 		if float64(time.Now().Unix()) > claims["exp"].(float64) {
 			c.AbortWithStatus(http.StatusUnauthorized)
+			return
 		}
 
 		user, err := db.GetUser(int(claims["sub"].(float64)))
 		if err != nil {
 			c.AbortWithStatus(http.StatusUnauthorized)
 		}
-		c.Set("user", user)
+		c.Set("userId", user.Id)
 
 		c.Next()
 	} else {
 		c.AbortWithStatus(http.StatusUnauthorized)
+		return
 	}
 
 }

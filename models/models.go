@@ -35,3 +35,15 @@ type Category struct {
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
+
+type ExpensesGroupedByCategory struct {
+	Category Category  `json:"category"`
+	Total    float32   `json:"total"`
+	Expenses []Expense `json:"expenses"`
+}
+
+type ExpensesGroupedByDay struct {
+	Day      string    `json:"day"`
+	Total    float32   `json:"total"`
+	Expenses []Expense `json:"expenses"`
+}

@@ -80,151 +80,151 @@ func GetExpense(id int) (models.Expense, error) {
 	return expense, nil
 }
 
-func GetAllCategoriesWithExpenses(month int) ([]struct {
-	Category string           `json:"category"`
-	Total    float32          `json:"total"`
-	Color    string           `json:"color"`
-	Expenses []models.Expense `json:"expenses"`
-}, error) {
+func GetAllExpensesGroupedByCategory(month int, user_id int) (
+	[]models.ExpensesGroupedByCategory, error) {
 	sqlScript := `
-			SELECT c.id, c.name, c.color, SUM(e.amount) AS total
-			FROM categories c
-			LEFT JOIN expenses e
-			ON c.id = e.category_id 
-			WHERE EXTRACT(MONTH FROM e.expense_date::date) = $1
-			GROUP BY c.id
-			ORDER BY total DESC;
-		`
-	rows, err := Pool.Query(context.Background(), sqlScript, month)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var result []struct {
-		Category string           `json:"category"`
-		Total    float32          `json:"total"`
-		Color    string           `json:"color"`
-		Expenses []models.Expense `json:"expenses"`
-	}
-
-	for rows.Next() {
-		var sub_res struct {
-			Category string           `json:"category"`
-			Total    float32          `json:"total"`
-			Color    string           `json:"color"`
-			Expenses []models.Expense `json:"expenses"`
-		}
-		var category_id int
-		err := rows.Scan(&category_id, &sub_res.Category, &sub_res.Color, &sub_res.Total)
-		if err != nil {
-			return nil, err
-		}
-
-		sub_res.Expenses, err = getExpensesByCategory(category_id, month)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, sub_res)
-	}
-	return result, nil
-}
-
-func getExpensesByCategory(category_id int, month int) ([]models.Expense, error) {
-	sqlScript := `
-		SELECT e.id, e.user_id, e.category_id, e.amount, e.name, e.description, e.expense_date, e.expense_time
-		FROM expenses e
-		WHERE e.category_id = $1 AND EXTRACT(MONTH FROM e.expense_date::date) = $2
+			SELECT c.id, c.name, c.color
+			FROM categories c;
 	`
-	rows, err := Pool.Query(context.Background(), sqlScript, category_id, month)
+	rows, err := Pool.Query(context.Background(), sqlScript)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var result []models.Expense
-	for rows.Next() {
-		var expense models.Expense
-
-		err := rows.Scan(&expense.Id, &expense.User_id, &expense.Category_id,
-			&expense.Amount, &expense.Name, &expense.Description, &expense.Expense_date, &expense.Expense_time)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, expense)
-	}
-	return result, nil
-}
-
-func GetAllDatesWithExpenses(month int) ([]struct {
-	Day      string           `json:"day"`
-	Expenses []models.Expense `json:"expenses"`
-}, error) {
-	sqlScript := `
-    select e.expense_date
-	from expenses e 
-	where EXTRACT(MONTH FROM e.expense_date::date) = $1
-	group by e.expense_date 
-	order by e.expense_date desc;
-`
-
-	rows, err := Pool.Query(context.Background(), sqlScript, month)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var result []struct {
-		Day      string           `json:"day"`
-		Expenses []models.Expense `json:"expenses"`
-	}
+	var categories []models.Category
 
 	for rows.Next() {
-		var sub_res struct {
-			Day      string           `json:"day"`
-			Expenses []models.Expense `json:"expenses"`
-		}
-		err := rows.Scan(&sub_res.Day)
+		var c models.Category
+		err := rows.Scan(&c.Id, &c.Name, &c.Color)
 		if err != nil {
 			return nil, err
 		}
-		sub_res.Expenses, err = getExpensesByDate(sub_res.Day, month)
+		categories = append(categories, c)
+	}
+
+	var result []models.ExpensesGroupedByCategory
+
+	for _, c := range categories {
+		expenses, total, err := GetAllExpensesByCategoryId(c.Id, user_id, month)
 		if err != nil {
 			return nil, err
 		}
+		var sub_res models.ExpensesGroupedByCategory
+		sub_res.Category = c
+		sub_res.Total = total
+		sub_res.Expenses = expenses
+
 		result = append(result, sub_res)
 	}
-
 	return result, nil
 }
 
-func getExpensesByDate(expense_date string, month int) ([]models.Expense, error) {
+func GetAllExpensesByCategoryId(category_id int, user_id int, month int) (
+	[]models.Expense, float32, error) {
 	sqlScript := `
-	SELECT e.id, e.user_id, c.name, c.color, e.category_id, e.amount, e.name, e.description, e.expense_time, e.expense_date
-	FROM expenses e
-	LEFT JOIN categories c
-	ON e.category_id = c.id
-	WHERE e.expense_date = $1 AND EXTRACT(MONTH FROM e.expense_date::date) = $2
-	ORDER BY e.expense_time desc
-`
-	rows, err := Pool.Query(context.Background(), sqlScript, expense_date, month)
+			SELECT e.id, e.user_id, e.category_id, 
+				e.amount, e.name, e.expense_date, e.expense_time
+			FROM expenses e
+			WHERE e.category_id = $1 and e.user_id = $2 and 
+				EXTRACT(MONTH FROM e.expense_date::date) = $3
+		`
+	rows, err := Pool.Query(context.Background(), sqlScript, category_id, user_id, month)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var expenses []models.Expense
+
+	var totalAmount float32
+
+	for rows.Next() {
+		var e models.Expense
+		err := rows.Scan(&e.Id, &e.User_id, &e.Category_id, &e.Amount,
+			&e.Name, &e.Expense_date, &e.Expense_time)
+		if err != nil {
+			return nil, 0, err
+		}
+		expenses = append(expenses, e)
+		totalAmount += float32(e.Amount)
+	}
+	return expenses, totalAmount, nil
+}
+
+func GetAllExpensesGroupedByDay(month int, user_id int) (
+	[]models.ExpensesGroupedByDay, error) {
+	sqlScript := `
+		select DISTINCT e.expense_date
+		FROM expenses e
+		WHERE EXTRACT(MONTH FROM e.expense_date::date) = 11 and
+			e.user_id = $1
+		ORDER BY e.expense_date asc;
+	`
+	rows, err := Pool.Query(context.Background(), sqlScript, user_id)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var result []models.Expense
-	for rows.Next() {
-		var expense models.Expense
+	var days []string
 
-		err := rows.Scan(&expense.Id, &expense.User_id, &expense.Category, &expense.Color, &expense.Category_id,
-			&expense.Amount, &expense.Name, &expense.Description, &expense.Expense_time, &expense.Expense_date)
+	for rows.Next() {
+		var day string
+		err := rows.Scan(&day)
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, expense)
+		days = append(days, day)
+	}
+
+	var result []models.ExpensesGroupedByDay
+
+	for _, day := range days {
+		expenses, total, err := GetAllExpensesByDay(day, user_id, month)
+		if err != nil {
+			return nil, err
+		}
+		var sub_res models.ExpensesGroupedByDay
+		sub_res.Day = day
+		sub_res.Total = total
+		sub_res.Expenses = expenses
+
+		result = append(result, sub_res)
 	}
 	return result, nil
+}
+
+func GetAllExpensesByDay(day string, user_id int, month int) (
+	[]models.Expense, float32, error) {
+	sqlScript := `
+			SELECT e.id, e.user_id, e.category_id, 
+				e.amount, e.name, e.expense_date, e.expense_time
+			FROM expenses e
+			WHERE e.expense_date = $1 and e.user_id = $2 and 
+				EXTRACT(MONTH FROM e.expense_date::date) = $3
+		`
+	rows, err := Pool.Query(context.Background(), sqlScript, day, user_id, month)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var expenses []models.Expense
+
+	var totalAmount float32
+
+	for rows.Next() {
+		var e models.Expense
+		err := rows.Scan(&e.Id, &e.User_id, &e.Category_id, &e.Amount,
+			&e.Name, &e.Expense_date, &e.Expense_time)
+		if err != nil {
+			return nil, 0, err
+		}
+		expenses = append(expenses, e)
+		totalAmount += float32(e.Amount)
+	}
+	return expenses, totalAmount, nil
 }
 
 func DeleteExpenseFromDb(id int) error {

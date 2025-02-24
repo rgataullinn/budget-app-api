@@ -138,5 +138,5 @@ func DeleteUser(c *gin.Context) {
 
 func Validate(c *gin.Context) {
 	user, _ := c.Get("user")
-	c.JSON(http.StatusOK, gin.H{"user": user})
+	c.JSON(http.StatusOK, gin.H{"userId": user})
 }
