@@ -30,6 +30,7 @@ func main() {
 		ExposeHeaders:    []string{"Content-Length", "Set-Cookie"},
 		AllowCredentials: true,
 	}))
+	//
 
 	router.POST("/users", handlers.CreateUser)
 	router.POST("/login", handlers.LoginUser)
