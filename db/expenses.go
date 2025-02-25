@@ -198,9 +198,11 @@ func GetAllExpensesGroupedByDay(month int, user_id int) (
 func GetAllExpensesByDay(day string, user_id int, month int) (
 	[]models.Expense, float32, error) {
 	sqlScript := `
-			SELECT e.id, e.user_id, e.category_id, 
+			SELECT e.id, e.user_id, e.category_id, c.name, 
 				e.amount, e.name, e.expense_date, e.expense_time
 			FROM expenses e
+			JOIN categories c
+			ON e.category_id = c.id
 			WHERE e.expense_date = $1 and e.user_id = $2 and 
 				EXTRACT(MONTH FROM e.expense_date::date) = $3
 		`
@@ -216,7 +218,7 @@ func GetAllExpensesByDay(day string, user_id int, month int) (
 
 	for rows.Next() {
 		var e models.Expense
-		err := rows.Scan(&e.Id, &e.User_id, &e.Category_id, &e.Amount,
+		err := rows.Scan(&e.Id, &e.User_id, &e.Category_id, &e.Category, &e.Amount,
 			&e.Name, &e.Expense_date, &e.Expense_time)
 		if err != nil {
 			return nil, 0, err

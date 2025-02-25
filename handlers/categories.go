@@ -99,25 +99,7 @@ func DeleteCategory(c *gin.Context) {
 }
 
 func GetCategories(c *gin.Context) {
-	month, err := strconv.Atoi(c.Query("month"))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "wrong month format",
-			"details": err.Error()})
-		return
-	}
-	categories, err := db.GetCategories(month)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Failed to get categories from db",
-			"details": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"categories": categories})
-}
-
-func GetCategoriesList(c *gin.Context) {
-	categories, err := db.GetCategoriesList()
+	categories, err := db.GetCategories()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to get list of categories from db",

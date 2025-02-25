@@ -61,35 +61,9 @@ func DeleteCategory(id int) error {
 	return err
 }
 
-func GetCategories(month int) ([]models.Category, error) {
+func GetCategories() ([]models.Category, error) {
 	sqlScript := `
-		select c.id, c.name, sum(e.amount) as total, c.color
-		from categories c 
-		join expenses e 
-		on c.id = e.category_id 
-		WHERE EXTRACT(MONTH FROM e.expense_date::date) = $1
-		group by c.id;
-	`
-	var result []models.Category
-	rows, err := Pool.Query(context.Background(), sqlScript, month)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var category models.Category
-		err := rows.Scan(&category.Id, &category.Name, &category.Total, &category.Color)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, category)
-	}
-	return result, nil
-}
-
-func GetCategoriesList() ([]models.Expense, error) {
-	sqlScript := `
-		SELECT id, name
+		SELECT id, name, description, color
 		FROM categories
 	`
 	rows, err := Pool.Query(context.Background(), sqlScript)
@@ -98,14 +72,14 @@ func GetCategoriesList() ([]models.Expense, error) {
 	}
 	defer rows.Close()
 
-	var result []models.Expense
+	var result []models.Category
 	for rows.Next() {
-		var expense models.Expense
-		err := rows.Scan(&expense.Id, &expense.Name)
+		var category models.Category
+		err := rows.Scan(&category.Id, &category.Name, &category.Description, &category.Color)
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, expense)
+		result = append(result, category)
 	}
 	return result, nil
 }
