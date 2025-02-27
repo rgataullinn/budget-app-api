@@ -110,11 +110,13 @@ func GetAllExpensesGroupedByCategory(month int, user_id int) (
 		if err != nil {
 			return nil, err
 		}
+		if len(expenses) == 0 {
+			continue
+		}
 		var sub_res models.ExpensesGroupedByCategory
 		sub_res.Category = c
 		sub_res.Total = total
 		sub_res.Expenses = expenses
-
 		result = append(result, sub_res)
 	}
 	return result, nil
