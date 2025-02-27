@@ -30,8 +30,6 @@ type Category struct {
 	Id          int       `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
-	Color       string    `json:"color"`
-	Total       float32   `json:"total"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

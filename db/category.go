@@ -7,13 +7,12 @@ import (
 
 func CreateCategory(newCategory models.Category) error {
 	sqlScript := `
-		INSERT INTO categories (name, description, color)
+		INSERT INTO categories (name, description)
 		VALUES($1, $2, $3);
 	`
 	_, err := Pool.Exec(context.Background(), sqlScript,
 		newCategory.Name,
-		newCategory.Description,
-		newCategory.Color)
+		newCategory.Description)
 
 	return err
 }
@@ -24,28 +23,26 @@ func UpdateCategory(category models.Category) error {
 		SET
 			name = $2,
 			description = $3,
-			color = $4
 		WHERE
 			id = $1
 `
 	_, err := Pool.Exec(context.Background(), sqlScript,
 		category.Id,
 		category.Name,
-		category.Description,
-		category.Color)
+		category.Description)
 
 	return err
 }
 
 func GetCategory(id int) (models.Category, error) {
 	sqlScript := `
-		SELECT id, name, description, color
+		SELECT id, name, description
 		FROM categories
 		WHERE id= $1
 	`
 	var category models.Category
 	row := Pool.QueryRow(context.Background(), sqlScript, id)
-	err := row.Scan(&category.Id, &category.Name, &category.Description, &category.Color)
+	err := row.Scan(&category.Id, &category.Name, &category.Description)
 	if err != nil {
 		return models.Category{}, err
 	}
@@ -63,7 +60,7 @@ func DeleteCategory(id int) error {
 
 func GetCategories() ([]models.Category, error) {
 	sqlScript := `
-		SELECT id, name, description, color
+		SELECT id, name, description
 		FROM categories
 	`
 	rows, err := Pool.Query(context.Background(), sqlScript)
@@ -75,7 +72,7 @@ func GetCategories() ([]models.Category, error) {
 	var result []models.Category
 	for rows.Next() {
 		var category models.Category
-		err := rows.Scan(&category.Id, &category.Name, &category.Description, &category.Color)
+		err := rows.Scan(&category.Id, &category.Name, &category.Description)
 		if err != nil {
 			return nil, err
 		}

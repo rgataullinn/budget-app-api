@@ -83,7 +83,7 @@ func GetExpense(id int) (models.Expense, error) {
 func GetAllExpensesGroupedByCategory(month int, user_id int) (
 	[]models.ExpensesGroupedByCategory, error) {
 	sqlScript := `
-			SELECT c.id, c.name, c.color
+			SELECT c.id, c.name
 			FROM categories c;
 	`
 	rows, err := Pool.Query(context.Background(), sqlScript)
@@ -96,7 +96,7 @@ func GetAllExpensesGroupedByCategory(month int, user_id int) (
 
 	for rows.Next() {
 		var c models.Category
-		err := rows.Scan(&c.Id, &c.Name, &c.Color)
+		err := rows.Scan(&c.Id, &c.Name)
 		if err != nil {
 			return nil, err
 		}
