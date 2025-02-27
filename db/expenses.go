@@ -159,11 +159,11 @@ func GetAllExpensesGroupedByDay(month int, user_id int) (
 	sqlScript := `
 		select DISTINCT e.expense_date
 		FROM expenses e
-		WHERE EXTRACT(MONTH FROM e.expense_date::date) = 11 and
-			e.user_id = $1
+		WHERE EXTRACT(MONTH FROM e.expense_date::date) = $1 and
+			e.user_id = $2
 		ORDER BY e.expense_date asc;
 	`
-	rows, err := Pool.Query(context.Background(), sqlScript, user_id)
+	rows, err := Pool.Query(context.Background(), sqlScript, month, user_id)
 	if err != nil {
 		return nil, err
 	}
