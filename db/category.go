@@ -58,15 +58,16 @@ func DeleteCategory(id int) error {
 	return err
 }
 
-func GetCategories() ([]models.Category, error) {
+func GetCategories(month int) ([]models.Category, error) {
 	sqlScript := `
 		SELECT c.id, c.name, c.description, sum(e.amount)
 		FROM categories c
 		JOIN expenses e
 		ON c.id = e.category_id
+		WHERE EXTRACT(MONTH FROM e.expense_date::date) = $1
 		GROUP BY c.id
 	`
-	rows, err := Pool.Query(context.Background(), sqlScript)
+	rows, err := Pool.Query(context.Background(), sqlScript, month)
 	if err != nil {
 		return nil, err
 	}
