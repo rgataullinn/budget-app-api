@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"personal-finance-api/models"
+	"sort"
 )
 
 func CreateExpense(newExpense models.Expense) error {
@@ -119,17 +120,24 @@ func GetAllExpensesGroupedByCategory(month int, user_id int) (
 		sub_res.Expenses = expenses
 		result = append(result, sub_res)
 	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Total > result[j].Total
+	})
 	return result, nil
 }
 
 func GetAllExpensesByCategoryId(category_id int, user_id int, month int) (
 	[]models.Expense, float32, error) {
 	sqlScript := `
-			SELECT e.id, e.user_id, e.category_id, 
+			SELECT e.id, e.user_id, e.category_id, c.name,
 				e.amount, e.name, e.expense_date, e.expense_time
 			FROM expenses e
+			JOIN categories c
+			ON e.category_id = c.id
 			WHERE e.category_id = $1 and e.user_id = $2 and 
 				EXTRACT(MONTH FROM e.expense_date::date) = $3
+			ORDER BY e.expense_date desc;
 		`
 	rows, err := Pool.Query(context.Background(), sqlScript, category_id, user_id, month)
 	if err != nil {
@@ -143,7 +151,7 @@ func GetAllExpensesByCategoryId(category_id int, user_id int, month int) (
 
 	for rows.Next() {
 		var e models.Expense
-		err := rows.Scan(&e.Id, &e.User_id, &e.Category_id, &e.Amount,
+		err := rows.Scan(&e.Id, &e.User_id, &e.Category_id, &e.Category, &e.Amount,
 			&e.Name, &e.Expense_date, &e.Expense_time)
 		if err != nil {
 			return nil, 0, err
@@ -161,7 +169,7 @@ func GetAllExpensesGroupedByDay(month int, user_id int) (
 		FROM expenses e
 		WHERE EXTRACT(MONTH FROM e.expense_date::date) = $1 and
 			e.user_id = $2
-		ORDER BY e.expense_date asc;
+		ORDER BY e.expense_date desc;
 	`
 	rows, err := Pool.Query(context.Background(), sqlScript, month, user_id)
 	if err != nil {
@@ -207,6 +215,7 @@ func GetAllExpensesByDay(day string, user_id int, month int) (
 			ON e.category_id = c.id
 			WHERE e.expense_date = $1 and e.user_id = $2 and 
 				EXTRACT(MONTH FROM e.expense_date::date) = $3
+			ORDER BY e.expense_time desc
 		`
 	rows, err := Pool.Query(context.Background(), sqlScript, day, user_id, month)
 	if err != nil {
