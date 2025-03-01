@@ -60,8 +60,11 @@ func DeleteCategory(id int) error {
 
 func GetCategories() ([]models.Category, error) {
 	sqlScript := `
-		SELECT id, name, description
-		FROM categories
+		SELECT c.id, c.name, c.description, sum(e.amount)
+		FROM categories c
+		JOIN expenses e
+		ON c.id = e.category_id
+		GROUP BY c.id
 	`
 	rows, err := Pool.Query(context.Background(), sqlScript)
 	if err != nil {
@@ -72,7 +75,7 @@ func GetCategories() ([]models.Category, error) {
 	var result []models.Category
 	for rows.Next() {
 		var category models.Category
-		err := rows.Scan(&category.Id, &category.Name, &category.Description)
+		err := rows.Scan(&category.Id, &category.Name, &category.Description, &category.Total)
 		if err != nil {
 			return nil, err
 		}
