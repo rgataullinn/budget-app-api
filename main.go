@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"personal-finance-api/db"
 	"personal-finance-api/handlers"
@@ -8,13 +9,14 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	// err := godotenv.Load()
-	// if err != nil {
-	// 	log.Fatal("Error loading .env file")
-	// }
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 	dbUser := os.Getenv("DB_USER")
 	dbPassword := os.Getenv("DB_PASSWORD")
 	dbHost := os.Getenv("DB_HOST")
@@ -24,7 +26,7 @@ func main() {
 	router := gin.Default()
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowOrigins:     []string{"http://localhost:3000", "https://bapp-production.up.railway.app/"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length", "Set-Cookie"},
@@ -47,7 +49,6 @@ func main() {
 	router.PUT("/category", handlers.UpdateCategory)
 	router.GET("/category", handlers.GetCategory)
 	router.GET("/categories", handlers.GetCategories)
-	router.GET("/categoriesList", handlers.GetCategoriesList)
 	router.DELETE("/category", handlers.DeleteCategory)
 
 	router.GET("/totalSpent", handlers.GetTotalSpent)
