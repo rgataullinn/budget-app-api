@@ -45,6 +45,7 @@ func main() {
 
 	router.Use(CORSMiddleware())
 
+
 	router.POST("/users", handlers.CreateUser)
 	router.POST("/login", handlers.LoginUser)
 	router.DELETE("/users", handlers.DeleteUser)
