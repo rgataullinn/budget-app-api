@@ -101,14 +101,18 @@ func LoginUser(c *gin.Context) {
 		return
 	}
 
-	c.SetSameSite(http.SameSiteLaxMode)
+	secureFlag := true
+	if strings.HasPrefix(c.Request.Host, "0.0.0.0") || strings.HasPrefix(c.Request.Host, "localhost") {
+		secureFlag = false
+	}
+
 	c.SetCookie(
 		"Auth",
 		tokenString,
 		3600*2,
 		"",
 		"",
-		false,
+		secureFlag,
 		true,
 	)
 
