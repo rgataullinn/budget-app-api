@@ -101,10 +101,10 @@ func LoginUser(c *gin.Context) {
 		return
 	}
 
-	secureFlag := true
-	if strings.HasPrefix(c.Request.Host, "0.0.0.0") || strings.HasPrefix(c.Request.Host, "localhost") {
-		secureFlag = false
-	}
+	// secureFlag := true
+	// if strings.HasPrefix(c.Request.Host, "0.0.0.0") || strings.HasPrefix(c.Request.Host, "localhost") {
+	// 	secureFlag = false
+	// }
 
 	c.SetCookie(
 		"Auth",
@@ -112,7 +112,7 @@ func LoginUser(c *gin.Context) {
 		3600*2,
 		"",
 		"",
-		secureFlag,
+		false,
 		true,
 	)
 
